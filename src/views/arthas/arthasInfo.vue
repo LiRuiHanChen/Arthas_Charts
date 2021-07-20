@@ -30,10 +30,9 @@
     </el-form>
 
     <div id="ThreadSpace" style="width: 100%">
-      <h4 align="center" font-size:smaller style="width: 100%">Thread</h4>
       <!-- 最近2000ms内最繁忙的5个线程 -->
       <div id="busyThreadTable" style="width: 100%;">
-        <h4 align="left" font-size:smaller style="width: 100%">Busy Thread</h4>
+        <h4 align="left" font-size:smaller style="width: 100%">Top 5 Busiest Threads</h4>
         <el-table
           :data="busyThreadData"
           style="width: 100%"
@@ -41,42 +40,34 @@
           <el-table-column
             prop="name"
             label="name"
-            width="100%"
           />
           <el-table-column
             prop="cpu"
             label="cpu"
-            width="180"
           />
           <el-table-column
             prop="state"
             label="state"
-            width="180"
           />
           <el-table-column
             prop="lockOwnerId"
             label="lockOwnerId"
-            width="180"
           />
           <el-table-column
             prop="lockedMonitors"
             label="lockedMonitors"
-            width="180"
           />
           <el-table-column
             prop="blockedCount"
             label="blockedCount"
-            width="180"
           />
           <el-table-column
             prop="lockedSynchronizers"
             label="lockedSynchronizers"
-            width="180"
           />
           <el-table-column
             prop="stackTrace"
             label="stackTrace"
-            width="180"
           >
             <template slot-scope="scope">
               <div>
@@ -86,16 +77,76 @@
           </el-table-column>
         </el-table>
       </div>
-      <!-- 查看指定状态的线程（堆叠折线图） -->
-      <div id="waitingThread" style="width:90%;height:300px; margin-top:30px" />
-      <div id="runnableThread" style="width:90%;height:300px;margin-top:10px" />
-      <div id="timedWaitingThread" style="width:90%;height:300px;margin-top:10px" />
-      <!-- 找出当前阻塞其他线程的线程 -->
-      <div id="blockThread" style="width:90%;height:300px;margin-top:40px" />
+      <!-- 查看指定状态的线程 -->
+      <div id="runnableThread" style="width:95%;margin-top:80px">
+        <h4 align="left" font-size:smaller style="width: 100%">All Thread</h4>
+        <el-table
+          :data="runnableThreadTableData.filter(data => !runnableThreadSearch || data.name.toLowerCase().includes(runnableThreadSearch.toLowerCase()))"
+          style="width: 100%"
+        >
+          <el-table-column
+            prop="id"
+            label="ID"
+          />
+          <el-table-column
+            prop="cpu"
+            sortable
+            label="CPU"
+          />
+          <el-table-column
+            prop="deltaTime"
+            sortable
+            label="DeltaTime"
+          />
+          <el-table-column
+            prop="name"
+            label="ThreadName"
+            width="300%"
+          />
+          <el-table-column
+            prop="state"
+            sortable
+            width="200%"
+            label="State"
+          />
+          <el-table-column
+            prop="interrupted"
+            :formatter="formatBoolean"
+            sortable
+            label="Interrupted"
+          />
+          <el-table-column
+            prop="group"
+            sortable
+            label="Group"
+          />
+          <el-table-column
+            prop="priority"
+            sortable
+            label="Priority"
+          />
+          <el-table-column
+            prop="time"
+            sortable
+            label="Time"
+          />
+          <el-table-column
+            align="right"
+          >
+            <template slot="header">
+              <el-input
+                v-model="runnableThreadSearch"
+                size="mini"
+                placeholder="输入线程名搜索"
+              />
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
     </div>
 
     <div id="JVMSpace" style="width: 90%;height:100%">
-      <h4 align="center" font-size:smaller>JVM</h4>
+      <h4 align="left" font-size:smaller>JVM</h4>
       <div id="runtimeList" style="width:30%">
         <json-viewer
           :value="runtimeList"
@@ -154,7 +205,7 @@
 </template>
 
 <script>
-import * as echarts from 'echarts'
+// import * as echarts from 'echarts'
 import { arthasRequest } from '@/api/arthas'
 
 export default {
@@ -164,6 +215,8 @@ export default {
       // websocket
       path: 'ws://localhost:9521/arthas_request',
       socket: '',
+      runnableThreadTableData: [],
+      runnableThreadSearch: '',
       busyThreadData: [],
       runtimeList: [],
       ClassLoadingList: [],
@@ -172,18 +225,6 @@ export default {
       MemoryManagersList: [],
       MemoryList: [],
       OperatingSystemList: [],
-      timedWaitingThreadsLegend: [],
-      timedWaitingThreadsSeriesData: [],
-      timedWaitingThreadsxAxis: [],
-      runnbaleThreasdxAxis: [],
-      runnbaleThreadsLegend: [],
-      runnbaleThreadsSeriesData: [],
-      waitingThreasdxAxis: [],
-      waitingThreadsLegend: [],
-      waitingThreadsSeriesData: [],
-      blockThreadsLegend: [],
-      blockThreadsSeriesData: [],
-      blockThreadsxAxis: [],
       fromData: {
         ip: 'http://localhost',
         port: '8563'
@@ -202,10 +243,6 @@ export default {
   },
 
   mounted() {
-    this.drawRrnnableThreadsStatus()
-    this.drawWaitingThreadsStatus()
-    this.drawTimedWaitingThreadsStatus()
-    this.drawBlockThreads()
     this.init()
   },
 
@@ -249,147 +286,6 @@ export default {
         }
       }
     },
-    // 线程运行状态
-    drawRrnnableThreadsStatus() {
-      const threadsStatusChart = echarts.init(
-        document.getElementById('runnableThread')
-      )
-      const baseLineChartoption = {
-        title: {
-          text: 'Runnable Thread'
-        },
-        tooltip: {
-          trigger: 'axis'
-        },
-        // legend: {
-        // data: this.runnbaleThreadsLegend
-        // },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: this.runnbaleThreasdxAxis
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: this.runnbaleThreadsSeriesData
-      }
-      threadsStatusChart.setOption(baseLineChartoption)
-    },
-    // waiting 状态线程
-    drawWaitingThreadsStatus() {
-      const threadsStatusChart = echarts.init(
-        document.getElementById('waitingThread')
-      )
-      const baseLineChartoption = {
-        title: {
-          text: 'Waiting Thread'
-        },
-        tooltip: {
-          trigger: 'axis'
-        },
-        legend: {
-          data: this.waitingThreadsLegend
-          // data: ['WAITING','RUNNABLE','TIMED_WAITING']
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: this.waitingThreasdxAxis
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: this.waitingThreadsSeriesData
-      }
-      threadsStatusChart.setOption(baseLineChartoption)
-    },
-    // TIMED_WAITING 状态线程
-    drawTimedWaitingThreadsStatus() {
-      const threadsStatusChart = echarts.init(
-        document.getElementById('timedWaitingThread')
-      )
-      const baseLineChartoption = {
-        title: {
-          text: 'Timed Waiting Thread'
-        },
-        tooltip: {
-          trigger: 'axis'
-        },
-        legend: {
-          data: this.timedWaitingThreadsLegend
-          // data: ['WAITING','RUNNABLE','TIMED_WAITING']
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: this.timedWaitingThreasdxAxis
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: this.timedWaitingThreadsSeriesData
-      }
-      threadsStatusChart.setOption(baseLineChartoption)
-    },
-    // block 状态线程
-    drawBlockThreads() {
-      const blockThreadsLineChart = echarts.init(
-        document.getElementById('blockThread')
-      )
-      const blcokThreadOption = {
-        title: {
-          text: 'Blocking Thread'
-        },
-        tooltip: {
-          trigger: 'axis'
-        },
-        legend: {
-          data: this.blockThreadsLegend
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '3%',
-          containLabel: true
-        },
-        toolbox: {
-          feature: {
-            saveAsImage: {}
-          }
-        },
-        xAxis: {
-          type: 'category',
-          boundaryGap: false,
-          data: this.blockThreadsxAxis
-        },
-        yAxis: {
-          type: 'value'
-        },
-        series: this.blockThreadsSeriesData
-      }
-      blockThreadsLineChart.setOption(blcokThreadOption)
-    },
-    // 最忙的5个线程
-
     init: function() {
       if (typeof WebSocket === 'undefined') {
         alert('您的浏览器不支持socket')
@@ -445,7 +341,12 @@ export default {
         date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds()
       return time
     },
-
+    /**
+     * 转换Boolean值
+     */
+    formatBoolean(row) {
+      return row.interrupted.toString()
+    },
     // 解析socket接收数据
     parsSocketMessage(data) {
       const results = JSON.parse(data)
@@ -465,30 +366,12 @@ export default {
           case 'thread -i 1000 -n 5':
             this.busyThreadData = json
             break
-          case 'thread --state BLOCKED':
-            break
-          case 'thread --state RUNNABLE':
-            console.log(json)
-            console.log('json.series = ')
-            console.log(this.runnbaleThreadsSeriesData)
-            this.runnbaleThreasdxAxis.push(json.xAxis)
-            this.runnbaleThreadsSeriesData.push(json.series)
-            // this.runnbaleThreadsLegend.push(json.legendData)
-            this.drawRrnnableThreadsStatus()
-            break
-          case 'thread --state WAITING':
-            break
-          case 'thread –-state TIMED_WAITING':
-            // this.timedWaitingThreadsLegend.push(json.legendData)
-            // this.timedWaitingThreadsSeriesData.push(json.series)
-            // this.timedWaitingThreadsxAxis.push(json.xAxis)
-            // this.drawTimedWaitingThreadsStatus()
+          case 'thread --state':
+            console.log(json.length)
+            this.runnableThreadTableData = json
             break
         }
       }
-      // this.busyThreadsSeriesData = data.series
-      // this.busyThreadsLegend = data.legend
-      // this.busyThreadsxAxis = data.xAxis
     }
   }
 
