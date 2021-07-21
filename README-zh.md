@@ -9,6 +9,8 @@ cd vue-admin-template
 
 # 安装依赖
 npm install
+npm rebuild node-sass
+#eslint 问题
 npm install echarts --save (npm cache clean --force)
 npm uninstall node-sass
 npm install node-sass@4.14.1
