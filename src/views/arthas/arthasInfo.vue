@@ -28,7 +28,6 @@
       <el-button id="Disconnect" type="primary" style="margin-left:1%">Disconnect</el-button>
       <el-button id="OutPut" type="primary" disabled style="margin-left:1%">OutPut</el-button>
     </el-form>
-
     <div id="ThreadSpace" style="width: 100%">
       <!-- 最近2000ms内最繁忙的5个线程 -->
       <div id="busyThreadTable" style="width: 100%;">
@@ -145,60 +144,55 @@
       </div>
     </div>
 
-    <div id="JVMSpace" style="width: 90%;height:100%">
-      <h4 align="left" font-size:smaller>JVM</h4>
-      <div id="runtimeList" style="width:30%">
-        <json-viewer
-          :value="runtimeList"
-          :expand-depth="10"
-          copyable
-          boxed
-        />
+    <div id="JVMSpace" style="width: 90%;height:100%;margin-top:80px">
+      <h4 align="left" font-size:smaller>Memory (GB)</h4>
+      <div id="memoryTable">
+        <el-table
+          :data="memoryTableData"
+          style="width: 100%"
+        >
+          <el-table-column
+            prop="name"
+            label="Name"
+          />
+          <el-table-column
+            prop="init"
+            sortable
+            label="Init"
+          >
+            <template slot-scope="scope">
+              {{ scope.row.value.init }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="committed"
+            sortable
+            label="Committed"
+          >
+            <template slot-scope="scope">
+              {{ scope.row.value.committed }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="max"
+            sortable
+            label="Max"
+          >
+            <template slot-scope="scope">
+              {{ scope.row.value.max }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="used"
+            sortable
+            label="Used"
+          >
+            <template slot-scope="scope">
+              {{ scope.row.value.used }}
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
-      <div id="ClassLoadingList" style="width:30%">
-        <json-viewer
-          :value="classLoadingList"
-          :expand-depth="10"
-          copyable
-          boxed
-        />
-      </div>
-      <div id="GarbageCollectorsList" style="width:30%">
-        <json-viewer
-          :value="garbageCollectorsList"
-          :expand-depth="10"
-          copyable
-          boxed
-        />
-      </div>
-      <div id="MemoryManagersList" style="width:30%">
-        <json-viewer
-          :value="memoryManagersList"
-          :expand-depth="10"
-          copyable
-          boxed
-        />
-      </div>
-      <div id="MemoryList" style="width:30%">
-        <json-viewer
-          :value="memoryList"
-          :expand-depth="10"
-          copyable
-          boxed
-        />
-      </div>
-      <div id="OperatingSystemList" style="width:30%">
-        <json-viewer
-          :value="operatingSystemList"
-          :expand-depth="10"
-          copyable
-          boxed
-        />
-      </div>
-    </div>
-
-    <div id="ClassLoaderSpace" style="width: 100%">
-      <h4 align="center" font-size:smaller>ClassLoader</h4>
     </div>
 
   </div>
@@ -215,16 +209,12 @@ export default {
       // websocket
       path: 'ws://localhost:9521/arthas_request',
       socket: '',
+      connectArthasState: false,
       runnableThreadTableData: [],
       runnableThreadSearch: '',
       busyThreadData: [],
-      runtimeList: [],
-      ClassLoadingList: [],
-      CompilationList: [],
-      GarbageCollectorsList: [],
-      MemoryManagersList: [],
-      MemoryList: [],
-      OperatingSystemList: [],
+      memoryTableData: [],
+      garbageCollectorsTableData: [],
       fromData: {
         ip: 'http://localhost',
         port: '8563'
@@ -243,7 +233,7 @@ export default {
   },
 
   mounted() {
-    this.init()
+    // this.init()
   },
 
   methods: {
@@ -271,6 +261,8 @@ export default {
             var results = response.data.body.results
             results.forEach(element => {
               if (element.type === 'version') {
+                this.connectArthasState = true
+                this.init()
                 this.$message({ message: '连接成功, 版本: ' + element.version, type: 'success' })
                 return
               }
@@ -294,12 +286,13 @@ export default {
         this.socket.onopen = this.open
         this.socket.onerror = this.error
         this.socket.onmessage = this.getMessage
-        this.socket.colse = this.colse
+        this.socket.onclose = this.colse
       }
     },
     open: function() {
-      console.log('socket连接成功')
-      this.send(JSON.stringify(this.fromData)) // 前端传递时间戳(执行测试的时间)
+      if (this.connectArthasState) {
+        this.send(JSON.stringify(this.fromData)) // 前端传递时间戳(执行测试的时间)
+      }
     },
     error: function() {
       console.log('连接错误')
@@ -354,20 +347,15 @@ export default {
       for (var key in results) {
         var json = JSON.parse(results[key])
         switch (key) {
+          // jvm更改为：GC信息
           case 'jvm':
             this.garbageCollectorsList = json.garbageCollectorsList
-            this.operatingSystemList = json.operatingSystemList
-            this.runtimeList = json.runtimeList
-            this.classLoadingList = json.classLoadingList
-            this.compilationList = json.compilationList
-            this.memoryManagersList = json.memoryManagersList
             this.memoryList = json.memoryList
             break
           case 'thread -i 1000 -n 5':
             this.busyThreadData = json
             break
           case 'thread --state':
-            console.log(json.length)
             this.runnableThreadTableData = json
             break
         }
@@ -380,9 +368,7 @@ export default {
 
 <style lang="scss" scoped>
 
-#runtimeList, #ClassLoadingList,#CompilationList,
-#GarbageCollectorsList,#MemoryManagersList,#MemoryList,
-#OperatingSystemList{
+#GarbageCollectorsList,#MemoryList{
     display: inline-block;
 }
 
