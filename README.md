@@ -14,14 +14,14 @@ English | [简体中文](./README-zh.md)
 
 ```bash
 # clone the project
-git clone https://github.com/LiRuiHanChen/JMeterUI.git
+git clone https://github.com/LiRuiHanChen/Arthas_Charts.git
 
 # enter the project directory
-cd vue-admin-template
+cd Arthas_Charts
 
 # install dependency
-npm install echarts --save
 npm install
+npm install echarts --save
 npm install --save-dev vue2-ace-editor
 
 npm 
