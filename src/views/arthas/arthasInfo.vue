@@ -38,35 +38,35 @@
         >
           <el-table-column
             prop="name"
-            label="name"
+            label="NAME"
           />
           <el-table-column
             prop="cpu"
-            label="cpu"
+            label="CPU%"
           />
           <el-table-column
             prop="state"
-            label="state"
+            label="State"
           />
           <el-table-column
             prop="lockOwnerId"
-            label="lockOwnerId"
+            label="LockOwnerId"
           />
           <el-table-column
             prop="lockedMonitors"
-            label="lockedMonitors"
+            label="LockedMonitors"
           />
           <el-table-column
             prop="blockedCount"
-            label="blockedCount"
+            label="BlockedCount"
           />
           <el-table-column
             prop="lockedSynchronizers"
-            label="lockedSynchronizers"
+            label="LockedSynchronizers"
           />
           <el-table-column
             prop="stackTrace"
-            label="stackTrace"
+            label="StackTrace"
           >
             <template slot-scope="scope">
               <div>
@@ -77,7 +77,7 @@
         </el-table>
       </div>
       <!-- 查看指定状态的线程 -->
-      <div id="runnableThread" style="width:95%;margin-top:80px">
+      <div id="runnableThread" style="width:95%;margin-top:40px">
         <h4 align="left" font-size:smaller style="width: 100%">All Thread</h4>
         <el-table
           :data="runnableThreadTableData.filter(data => !runnableThreadSearch || data.name.toLowerCase().includes(runnableThreadSearch.toLowerCase()))"
@@ -86,16 +86,19 @@
           <el-table-column
             prop="id"
             label="ID"
+            width="90%"
           />
           <el-table-column
             prop="cpu"
             sortable
             label="CPU"
+            width="90"
           />
           <el-table-column
             prop="deltaTime"
             sortable
             label="DeltaTime"
+            width="90"
           />
           <el-table-column
             prop="name"
@@ -105,7 +108,6 @@
           <el-table-column
             prop="state"
             sortable
-            width="200%"
             label="State"
           />
           <el-table-column
@@ -132,7 +134,7 @@
           <el-table-column
             align="right"
           >
-            <template slot="header">
+            <template slot="header" slot-scope="scope">
               <el-input
                 v-model="runnableThreadSearch"
                 size="mini"
@@ -144,11 +146,11 @@
       </div>
     </div>
 
-    <div id="JVMSpace" style="width: 90%;height:100%;margin-top:80px">
+    <div id="JVMSpace" style="width: 90%;height:100%;margin-top:40px">
       <h4 align="left" font-size:smaller>Memory (GB)</h4>
       <div id="memoryTable">
         <el-table
-          :data="memoryTableData"
+          :data="memoryTableData.filter(data => !memorySearch || data.name.toLowerCase().includes(memorySearch.toLowerCase()))"
           style="width: 100%"
         >
           <el-table-column
@@ -156,39 +158,29 @@
             label="Name"
           />
           <el-table-column
-            prop="init"
+            prop="used"
             sortable
-            label="Init"
-          >
-            <template slot-scope="scope">
-              {{ scope.row.value.init }}
-            </template>
-          </el-table-column>
+            label="Used(MB)"
+          />
           <el-table-column
-            prop="committed"
+            prop="total"
             sortable
-            label="Committed"
-          >
-            <template slot-scope="scope">
-              {{ scope.row.value.committed }}
-            </template>
-          </el-table-column>
+            label="Total(MB)"
+          />
           <el-table-column
             prop="max"
             sortable
-            label="Max"
-          >
-            <template slot-scope="scope">
-              {{ scope.row.value.max }}
-            </template>
-          </el-table-column>
+            label="Max(MB)"
+          />
           <el-table-column
-            prop="used"
-            sortable
-            label="Used"
+            align="right"
           >
-            <template slot-scope="scope">
-              {{ scope.row.value.used }}
+            <template slot="header" slot-scope="scope">
+              <el-input
+                v-model="memorySearch"
+                size="mini"
+                placeholder="输入关键字搜索"
+              />
             </template>
           </el-table-column>
         </el-table>
@@ -212,9 +204,24 @@ export default {
       connectArthasState: false,
       runnableThreadTableData: [],
       runnableThreadSearch: '',
+      memorySearch: '',
       busyThreadData: [],
-      memoryTableData: [],
-      garbageCollectorsTableData: [],
+      memoryTableData: [
+        {
+          'total': 124,
+          'max': -1431306240,
+          'name': 'ps_old_gen',
+          'used': 34,
+          'type': 'heap'
+        },
+        {
+          'total': 71,
+          'max': -1,
+          'name': 'nonheap',
+          'used': 68,
+          'type': 'nonheap'
+        }
+      ],
       fromData: {
         ip: 'http://localhost',
         port: '8563'
@@ -343,14 +350,13 @@ export default {
     // 解析socket接收数据
     parsSocketMessage(data) {
       const results = JSON.parse(data)
+
       // 遍历结果根据Key值进行赋值
       for (var key in results) {
         var json = JSON.parse(results[key])
         switch (key) {
-          // jvm更改为：GC信息
-          case 'jvm':
-            this.garbageCollectorsList = json.garbageCollectorsList
-            this.memoryList = json.memoryList
+          case 'dashboard -i 1000 -n 1':
+            this.memoryTableData = json
             break
           case 'thread -i 1000 -n 5':
             this.busyThreadData = json
@@ -367,10 +373,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-
-#GarbageCollectorsList,#MemoryList{
-    display: inline-block;
-}
 
 .dashboard {
   &-container {
