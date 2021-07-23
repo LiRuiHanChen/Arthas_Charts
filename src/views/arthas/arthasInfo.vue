@@ -206,22 +206,7 @@ export default {
       runnableThreadSearch: '',
       memorySearch: '',
       busyThreadData: [],
-      memoryTableData: [
-        {
-          'total': 124,
-          'max': -1431306240,
-          'name': 'ps_old_gen',
-          'used': 34,
-          'type': 'heap'
-        },
-        {
-          'total': 71,
-          'max': -1,
-          'name': 'nonheap',
-          'used': 68,
-          'type': 'nonheap'
-        }
-      ],
+      memoryTableData: [],
       fromData: {
         ip: 'http://localhost',
         port: '8563'
