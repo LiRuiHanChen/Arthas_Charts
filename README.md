@@ -21,6 +21,7 @@ cd Arthas_Charts
 
 # install dependency
 npm install
+npm i element-ui -S
 npm install echarts --save
 npm install --save-dev vue2-ace-editor
 

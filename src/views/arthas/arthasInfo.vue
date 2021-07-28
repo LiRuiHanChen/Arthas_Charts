@@ -25,9 +25,26 @@
       </el-form-item>
 
       <el-button id="connect" type="primary" style="margin-left:1%" @click="connectArthas('ruleFrom')">Connect</el-button>
-      <el-button id="Disconnect" type="primary" style="margin-left:1%">Disconnect</el-button>
-      <el-button id="OutPut" type="primary" disabled style="margin-left:1%">OutPut</el-button>
+      <!-- <el-button id="Disconnect" type="primary" style="margin-left:1%">Disconnect</el-button> -->
+      <!-- <el-button id="OutPut" type="primary" disabled style="margin-left:1%">OutPut</el-button> -->
     </el-form>
+    <el-form ref="numberValidateForm" :inline="true" :model="numberValidateForm" style="width:100%">
+      <el-form-item
+        prop="durationTime"
+        :rules="[
+          { required: true, message: '请输入持续时长'},
+          { type: 'number', message: '必须为数字值'}
+        ]"
+      >
+        <el-input v-model.number="numberValidateForm.durationTime" type="durationTime" autocomplete="off" placeholder="请输入持续时长,单位:秒">
+          <template slot="prepend">Profiler</template>
+        </el-input>
+      </el-form-item>
+      <el-form-item>
+        <el-button id="profiler" type="primary" style="margin-left:1%" @click="loadProfiler(numberValidateForm)">start</el-button>
+      </el-form-item>
+    </el-form>
+
     <div id="ThreadSpace" style="width: 100%">
       <!-- 最近2000ms内最繁忙的5个线程 -->
       <div id="busyThreadTable" style="width: 100%;">
@@ -191,7 +208,6 @@
 </template>
 
 <script>
-// import * as echarts from 'echarts'
 import { arthasRequest } from '@/api/arthas'
 
 export default {
@@ -199,7 +215,7 @@ export default {
   data() {
     return {
       // websocket
-      path: 'ws://localhost:9521/arthas_request',
+      path: process.env.VUE_APP_WEB_SOCKET_API,
       socket: '',
       connectArthasState: false,
       runnableThreadTableData: [],
@@ -207,9 +223,13 @@ export default {
       memorySearch: '',
       busyThreadData: [],
       memoryTableData: [],
+      arthasOutputFile: '',
       fromData: {
         ip: 'http://localhost',
         port: '8563'
+      },
+      numberValidateForm: {
+        durationTime: ''
       },
       arthasRequestParam: {
         host: '',
@@ -283,7 +303,10 @@ export default {
     },
     open: function() {
       if (this.connectArthasState) {
-        this.send(JSON.stringify(this.fromData)) // 前端传递时间戳(执行测试的时间)
+        var json = {}
+        json.key = 'version'
+        json.value = this.fromData
+        this.send(JSON.stringify(json))
       }
     },
     error: function() {
@@ -305,7 +328,6 @@ export default {
 
     // 跳转新页面
     goEnviro(stackTraceData) {
-      console.log(stackTraceData)
       if (stackTraceData !== undefined) {
         const routerData = this.$router.resolve({
           // name: 'stackTrace',
@@ -315,6 +337,27 @@ export default {
           }
         })
         window.open(routerData.href, '_blank')
+      }
+    },
+    // 执行火焰图
+    loadProfiler(from) {
+      const tempTime = from.durationTime
+      if (tempTime < 1 || tempTime > 600) {
+        this.$message.error('请输入1-600范围内的值')
+      } else {
+        if (this.socket === '') {
+          this.$message.error('arthas 未连接!')
+        } else {
+          var json = {}
+          json.key = 'profiler start --duration'
+          json.value = from.durationTime
+          // 异步执行需要等待通知
+          this.send(JSON.stringify(json))
+          this.$message({
+            message: '生成中，请等待 ' + from.durationTime + '秒',
+            type: 'success'
+          })
+        }
       }
     },
     /**
@@ -332,23 +375,41 @@ export default {
     formatBoolean(row) {
       return row.interrupted.toString()
     },
+    openNotify() {
+      const h = this.$createElement
+      this.$notify({
+        title: 'Profiler 结果已生成',
+        message: h('i', { style: 'color: teal' }, '点击查看详情'),
+        type: 'success',
+        duration: 0,
+        // 请求后端接口打开文件
+        onClick: () => {
+          window.open(process.env.VUE_APP_ARTHAS_OUTPUT_API + '/static/output/' + this.arthasOutputFile, '_blank')
+        }
+      })
+    },
     // 解析socket接收数据
     parsSocketMessage(data) {
       const results = JSON.parse(data)
-
       // 遍历结果根据Key值进行赋值
       for (var key in results) {
-        var json = JSON.parse(results[key])
         switch (key) {
           case 'dashboard -i 1000 -n 1':
+            var json = JSON.parse(results[key])
             this.memoryTableData = json
             break
           case 'thread -i 1000 -n 5':
-            this.busyThreadData = json
+            var busyJson = JSON.parse(results[key])
+            this.busyThreadData = busyJson
             break
           case 'thread --state':
-            this.runnableThreadTableData = json
+            var runnableThreadJson = JSON.parse(results[key])
+            this.runnableThreadTableData = runnableThreadJson
             break
+          case 'profiler start --duration':
+            this.arthasOutputFile = results[key]
+            // 查看文件
+            this.openNotify()
         }
       }
     }
