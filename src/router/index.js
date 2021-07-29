@@ -7,7 +7,7 @@ import Layout from '@/layout'
 
 export const constantRoutes = [
   {
-    path: '/arthas',
+    path: '/',
     component: Layout,
     name: 'arthas',
     meta: {
