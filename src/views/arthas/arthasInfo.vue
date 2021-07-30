@@ -25,7 +25,7 @@
       </el-form-item>
 
       <el-button id="connect" type="primary" style="margin-left:1%" @click="connectArthas('ruleFrom')">Connect</el-button>
-      <!-- <el-button id="Disconnect" type="primary" style="margin-left:1%">Disconnect</el-button> -->
+      <el-button id="Disconnect" type="primary" style="margin-left:1%" @click="stopSocket()">Disconnect</el-button>
       <!-- <el-button id="OutPut" type="primary" disabled style="margin-left:1%">OutPut</el-button> -->
     </el-form>
     <el-form ref="numberValidateForm" :inline="true" :model="numberValidateForm" style="width:100%">
@@ -210,14 +210,37 @@
 <script>
 import { arthasRequest } from '@/api/arthas'
 
+// 心跳检测
+var heartCheck = {
+  timeout: 30000, // 30秒
+  timeoutObj: null,
+  reset: function() { // 接收成功一次推送，就将心跳检测的倒计时重置为30秒
+    clearTimeout(this.timeoutObj)// 重置倒计时
+    this.start()
+  },
+  start: function() { // 启动心跳检测机制，设置倒计时30秒一次
+    this.timeoutObj = setTimeout(function() {
+      if (this.socket !== undefined || this.socket !== '') {
+        var message = {}
+        message.key = 'ping'
+        this.send(JSON.stringify(message))// 启动心跳
+      }
+    }, this.timeout)
+  }
+  // onopen连接上，就开始start及时，如果在定时时间范围内，onmessage获取到了服务端消息，就重置reset倒计时，距离上次从后端获取消息30秒后，执行心跳检测，看是不是断了。
+}
+var tt
+
 export default {
   name: 'App',
   data() {
     return {
       // websocket
       path: process.env.VUE_APP_WEB_SOCKET_API,
+      lockReconnect: false,
       socket: '',
       connectArthasState: false,
+      tt: '',
       runnableThreadTableData: [],
       runnableThreadSearch: '',
       memorySearch: '',
@@ -290,6 +313,12 @@ export default {
         }
       }
     },
+    stopSocket() {
+      var data = {}
+      data.key = 'stop'
+      this.socket.send(JSON.stringify(data))
+      this.socket.close()
+    },
     init: function() {
       if (typeof WebSocket === 'undefined') {
         alert('您的浏览器不支持socket')
@@ -315,6 +344,7 @@ export default {
     getMessage: function(msg) {
       const data = msg.data
       this.parsSocketMessage(data)
+      heartCheck.start()
     },
     send(params) {
       this.socket.send(params)
@@ -323,7 +353,7 @@ export default {
       console.log('socket已经关闭')
     },
     destroyed() {
-      this.socket.onclose = this.close
+      this.socket.close()
     },
 
     // 跳转新页面
@@ -387,6 +417,27 @@ export default {
           window.open(process.env.VUE_APP_ARTHAS_OUTPUT_API + '/static/output/' + this.arthasOutputFile, '_blank')
         }
       })
+    },
+    createWebSocket() {
+      try {
+        this.socket = new WebSocket(this.path)
+        this.init()
+      } catch (e) {
+        this.reconnect(this.path)
+      }
+    },
+    // websocket 重连
+    reconnect(url) {
+      if (this.lockReconnect) {
+        return
+      }
+      this.lockReconnect = true
+      // 没连接上会一直重连，设置延迟避免请求过多
+      tt && clearTimeout(tt)
+      tt = setTimeout(function() {
+        this.createWebSocket(url)
+        this.lockReconnect = false
+      }, 4000)
     },
     // 解析socket接收数据
     parsSocketMessage(data) {

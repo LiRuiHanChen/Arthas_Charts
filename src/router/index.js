@@ -16,7 +16,7 @@ export const constantRoutes = [
     },
     children: [
       {
-        path: 'arthas',
+        path: '/',
         name: 'arthas',
         component: () => import('@/views/arthas/arthasInfo'),
         meta: { title: 'Arthas' }
