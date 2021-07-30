@@ -164,7 +164,7 @@
     </div>
 
     <div id="JVMSpace" style="width: 90%;height:100%;margin-top:40px">
-      <h4 align="left" font-size:smaller>Memory (GB)</h4>
+      <h4 align="left" font-size:smaller>Memory</h4>
       <div id="memoryTable">
         <el-table
           :data="memoryTableData.filter(data => !memorySearch || data.name.toLowerCase().includes(memorySearch.toLowerCase()))"
