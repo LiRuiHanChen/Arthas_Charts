@@ -414,7 +414,7 @@ export default {
         duration: 0,
         // 请求后端接口打开文件
         onClick: () => {
-          window.open(process.env.VUE_APP_ARTHAS_OUTPUT_API + '/static/output/' + this.arthasOutputFile, '_blank')
+          window.open(this.arthasOutputFile, '_blank')
         }
       })
     },
