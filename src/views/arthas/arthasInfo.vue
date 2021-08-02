@@ -93,7 +93,48 @@
           </el-table-column>
         </el-table>
       </div>
-      <!-- 查看指定状态的线程 -->
+
+      <div id="JVMSpace" style="width: 90%;margin-top:40px">
+        <h4 align="left" font-size:smaller>Memory</h4>
+        <div id="memoryTable">
+          <el-table
+            :data="memoryTableData.filter(data => !memorySearch || data.name.toLowerCase().includes(memorySearch.toLowerCase()))"
+            style="width: 100%"
+          >
+            <el-table-column
+              prop="name"
+              label="Name"
+            />
+            <el-table-column
+              prop="used"
+              sortable
+              label="Used(MB)"
+            />
+            <el-table-column
+              prop="total"
+              sortable
+              label="Total(MB)"
+            />
+            <el-table-column
+              prop="max"
+              sortable
+              label="Max(MB)"
+            />
+            <el-table-column
+              align="right"
+            >
+              <template slot="header" slot-scope="scope">
+                <el-input
+                  v-model="memorySearch"
+                  size="mini"
+                  placeholder="输入关键字搜索"
+                />
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+
       <div id="runnableThread" style="width:95%;margin-top:40px">
         <h4 align="left" font-size:smaller style="width: 100%">All Thread</h4>
         <el-table
@@ -163,47 +204,6 @@
       </div>
     </div>
 
-    <div id="JVMSpace" style="width: 90%;height:100%;margin-top:40px">
-      <h4 align="left" font-size:smaller>Memory</h4>
-      <div id="memoryTable">
-        <el-table
-          :data="memoryTableData.filter(data => !memorySearch || data.name.toLowerCase().includes(memorySearch.toLowerCase()))"
-          style="width: 100%"
-        >
-          <el-table-column
-            prop="name"
-            label="Name"
-          />
-          <el-table-column
-            prop="used"
-            sortable
-            label="Used(MB)"
-          />
-          <el-table-column
-            prop="total"
-            sortable
-            label="Total(MB)"
-          />
-          <el-table-column
-            prop="max"
-            sortable
-            label="Max(MB)"
-          />
-          <el-table-column
-            align="right"
-          >
-            <template slot="header" slot-scope="scope">
-              <el-input
-                v-model="memorySearch"
-                size="mini"
-                placeholder="输入关键字搜索"
-              />
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-    </div>
-
   </div>
 </template>
 
@@ -248,7 +248,7 @@ export default {
       memoryTableData: [],
       arthasOutputFile: '',
       fromData: {
-        ip: 'http://localhost',
+        ip: 'http://',
         port: '8563'
       },
       numberValidateForm: {
@@ -313,11 +313,16 @@ export default {
         }
       }
     },
+    // 断开连接
     stopSocket() {
       var data = {}
       data.key = 'stop'
       this.socket.send(JSON.stringify(data))
       this.socket.close()
+      this.$message({
+        message: '连接已断开',
+        type: 'success'
+      })
     },
     init: function() {
       if (typeof WebSocket === 'undefined') {
@@ -414,7 +419,7 @@ export default {
         duration: 0,
         // 请求后端接口打开文件
         onClick: () => {
-          window.open(this.arthasOutputFile, '_blank')
+          window.open(process.env.VUE_APP_ARTHAS_OUTPUT_API + '/static/output/' + this.arthasOutputFile, '_blank')
         }
       })
     },
