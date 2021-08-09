@@ -23,6 +23,23 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/student',
+    name: 'Student',
+    component: Layout,
+    meta: {
+      title: 'Student',
+      icon: 'nested'
+    },
+    children: [
+      {
+        path: '/info',
+        name: 'info',
+        component: () => import('@/views/student/student'),
+        meta: { title: 'register' }
+      }
+    ]
+  },
 
   // {
   //   path: '/testReport',
