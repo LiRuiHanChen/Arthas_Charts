@@ -148,8 +148,8 @@ export default {
         }
       })
       if (checkValue === true) {
-        if (this.teacherFromData.count > 10) {
-          this.$message.error('count数量异常,请检查!')
+        if (this.teacherFromData.count > 5) {
+          this.$message.error('count数量不能大于5')
           return
         }
         if (this.teacherFromData.real_name === '') {
