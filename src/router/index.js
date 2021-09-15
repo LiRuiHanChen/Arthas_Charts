@@ -28,7 +28,7 @@ export const constantRoutes = [
     name: 'Student',
     component: Layout,
     meta: {
-      title: 'Student',
+      title: '注册',
       icon: 'nested'
     },
     children: [
@@ -36,11 +36,16 @@ export const constantRoutes = [
         path: '/info',
         name: 'info',
         component: () => import('@/views/student/student'),
-        meta: { title: 'register' }
+        meta: { title: '学生注册' }
+      },
+      {
+        path: '/teacher',
+        name: 'info',
+        component: () => import('@/views/student/teacher'),
+        meta: { title: '老师注册' }
       }
     ]
   },
-
   // {
   //   path: '/testReport',
   //   component: Layout,
