@@ -50,7 +50,11 @@
             <span>{{ scope.row.requestBody | ellipsis }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="expectValue" label="期望结果" />
+        <el-table-column prop="expectValue" label="期望结果">
+          <template slot-scope="scope">
+            <span>{{ scope.row.expectValue | ellipsis }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="createTime" :formatter="dateFormat" label="创建时间" />
         <el-table-column prop="updateTime" :formatter="dateFormat" label="更新时间" />
         <el-table-column prop="update" label="操作" align="center">
@@ -62,18 +66,6 @@
       </el-table>
     </div>
 
-    <div style="width:100%;margin-top:10px">
-      <span>运行结果展示</span>
-      <editor
-        ref="ec"
-        v-model="shwoTestCaseResult"
-        height="200"
-        theme="chrome"
-        width="40%;margin-top:15px"
-        :options="editorOptions"
-        @init="editorInit"
-      />
-    </div>
     <el-dialog
       :visible.sync="dialogVisible"
       width="30%"
@@ -88,11 +80,30 @@
             <el-input v-model="saveHomeWorkRquest.requestBody" />
           </el-form-item>
           <el-form-item label="期望结果">
-            <el-input v-model="saveHomeWorkRquest.expectValue" />
+            <el-input v-model="saveHomeWorkRquest.expectValue" placeholder="json格式,key为qidvalue为结果(0、1、2) " />
           </el-form-item>
         </el-form>
         <el-button type="primary" @click="saveScene(saveHomeWorkRquest)">保 存</el-button>
       </span>
+    </el-dialog>
+
+    <!-- 结果展示 -->
+    <el-dialog
+      title="运行结果展示"
+      :visible.sync="resultDialogVisible"
+      width="30%"
+    >
+      <div style="width:100%;margin-top:10px">
+        <editor
+          ref="ec"
+          v-model="shwoTestCaseResult"
+          height="200"
+          theme="chrome"
+          width="100%"
+          :options="editorOptions"
+          @init="editorInit"
+        />
+      </div>
     </el-dialog>
 
     <!-- 添加场景信息 -->
@@ -147,6 +158,7 @@ export default {
         showPrintMargin: false // 去除编辑器里的竖线
       },
       dialogVisible: false, // 添加按钮的弹框
+      resultDialogVisible: false, // 结果展示的弹框
       multipleSelection: [], // 列表页的选择框
       options: [{
         value: '',
@@ -159,7 +171,7 @@ export default {
         stage: 1,
         flag: 0,
         requestBody: '',
-        expectValue: '',
+        expectValue: '{ Q_123:0 }',
         createTime: '',
         updateTime: ''
       },
@@ -174,6 +186,7 @@ export default {
     }
   },
   mounted() {
+    this.onSubmit()
   },
   methods: {
     editorInit: function() {
@@ -484,7 +497,8 @@ export default {
       if (this.multipleSelection.length !== 0) {
         var resp = await runHomeWork(this.multipleSelection)
         if (resp.code === 200) {
-          this.shwoTestCaseResult = JSON.stringify(resp.data)
+          this.shwoTestCaseResult = JSON.stringify(resp.data, null, 2)
+          this.resultDialogVisible = true
         }
       } else {
         this.$message({
