@@ -102,22 +102,22 @@ export const constantRoutes = [
   //   ]
   // },
 
-  // {
-  //   path: '/autoInterface/interfaceScene',
-  //   component: Layout,
-  //   name: 'scene',
-  //   meta: {
-  //     title: '接口测试场景',
-  //     icon: 'nested'
-  //   },
-  //   children: [
-  //     {
-  //       path: '/interfaceList',
-  //       component: () => import('@/views/autoInterface/interfaceScene/scene'), // Parent router-view
-  //       meta: { title: '接口测试场景' }
-  //     }
-  //   ]
-  // },
+  {
+    path: '/autoInterface/interfaceScene',
+    component: Layout,
+    name: 'scene',
+    meta: {
+      title: '测试场景',
+      icon: 'nested'
+    },
+    children: [
+      {
+        path: '/interfaceList',
+        component: () => import('@/views/autoInterface/interfaceScene/scene'), // Parent router-view
+        meta: { title: '测试场景' }
+      }
+    ]
+  },
 
   // {
   //   path: '/autoInterface/testData',

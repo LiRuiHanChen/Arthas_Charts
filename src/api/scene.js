@@ -1,23 +1,28 @@
 import request from '@/utils/request'
 
 // 获取场景信息
-export function getScene(url, sceneId) {
+export function getHomeWork(caseName, stage, subject, flag) {
   return request({
-    url: '/scene/info',
+    url: '/getHomeWork',
     method: 'get',
     params: {
-      url,
-      sceneId
+      caseName,
+      stage,
+      subject,
+      flag
     }
   })
 }
 
 // 运行场景
-export function runScene(httpRequestEngineBody) {
+export function runHomeWork(homeWorkTestCaseList) {
   return request({
-    url: '/scene/run',
+    url: '/runHomeWorkTestCase',
     method: 'post',
-    httpRequestEngineBody
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    data: JSON.stringify(homeWorkTestCaseList)
   })
 }
 
@@ -25,13 +30,13 @@ export function runScene(httpRequestEngineBody) {
   保存场景
   List<ScenariosData>
 */
-export function saveScene(list) {
+export function saveHomeWork(homeWorkRequestBean) {
   return request({
-    url: '/scene/save',
+    url: '/saveHomeWork',
     method: 'post',
     headers: {
       'Content-Type': 'application/json; charset=UTF-8'
     },
-    data: JSON.stringify(list)
+    data: homeWorkRequestBean
   })
 }
